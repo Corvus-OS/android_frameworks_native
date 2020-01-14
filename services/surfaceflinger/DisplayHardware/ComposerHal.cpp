@@ -28,6 +28,7 @@
 #include <hidl/HidlTransportUtils.h>
 #ifdef QCOM_UM_FAMILY
 #include <vendor/qti/hardware/display/composer/2.1/IQtiComposerClient.h>
+#include <vendor/display/config/1.16/IDisplayConfig.h>
 #endif
 
 namespace android {
@@ -35,9 +36,6 @@ namespace android {
 using hardware::Return;
 using hardware::hidl_vec;
 using hardware::hidl_handle;
-#ifdef QCOM_UM_FAMILY
-using vendor::qti::hardware::display::composer::V2_1::IQtiComposerClient;
-#endif
 
 namespace Hwc2 {
 
@@ -227,6 +225,19 @@ Composer::Composer(const std::string& serviceName)
     if (mClient == nullptr) {
         LOG_ALWAYS_FATAL("failed to create composer client");
     }
+
+#ifdef QCOM_UM_FAMILY
+    // On successful creation of composer client only allowIdleFallback
+    if (mClient) {
+        using vendor::display::config::V1_16::IDisplayConfig;
+        android::sp<IDisplayConfig> disp_config_v1_16 = IDisplayConfig::getService();
+        if (disp_config_v1_16 != NULL) {
+            if (disp_config_v1_16->allowIdleFallback()) {
+                ALOGW("failed to set Idle time");
+            }
+        }
+    }
+#endif
 
     if (mIsUsingVrComposer) {
         sp<IVrComposerClient> vrClient = IVrComposerClient::castFrom(mClient);
