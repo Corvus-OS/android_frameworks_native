@@ -130,7 +130,6 @@ private:
     virtual Region getDrawingSurfaceDamage() const = 0;
     virtual const HdrMetadata& getDrawingHdrMetadata() const = 0;
     virtual int getDrawingApi() const = 0;
-    virtual PixelFormat getPixelFormat() const = 0;
 
     virtual uint64_t getFrameNumber() const = 0;
 
@@ -197,6 +196,8 @@ private:
     std::shared_ptr<compositionengine::Layer> mCompositionLayer;
 
     FloatRect computeSourceBounds(const FloatRect& parentBounds) const override;
+
+    PixelFormat getPixelFormat() const;
 };
 
 } // namespace android

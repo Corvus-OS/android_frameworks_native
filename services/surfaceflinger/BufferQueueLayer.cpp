@@ -211,10 +211,6 @@ int BufferQueueLayer::getDrawingApi() const {
     return mConsumer->getCurrentApi();
 }
 
-PixelFormat BufferQueueLayer::getPixelFormat() const {
-    return mFormat;
-}
-
 uint64_t BufferQueueLayer::getFrameNumber() const {
     Mutex::Autolock lock(mQueueItemLock);
     uint64_t frameNumber = mQueueItems[0].mFrameNumber;
@@ -642,8 +638,6 @@ status_t BufferQueueLayer::setDefaultBufferProperties(uint32_t w, uint32_t h, Pi
     } else if (mName == FOD_TOUCHED_LAYER_NAME) {
         usageBits = getFodUsageBits(usageBits, true);
     }
-
-    mFormat = format;
 
     setDefaultBufferSize(w, h);
     mConsumer->setDefaultBufferFormat(format);
