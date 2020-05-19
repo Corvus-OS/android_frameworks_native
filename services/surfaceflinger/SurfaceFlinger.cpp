@@ -333,6 +333,11 @@ std::unique_ptr<LayerExtWrapper> LayerExtWrapper::Create() {
 int LayerExtWrapper::getLayerClass(const std::string &name) {
   return mInst->GetLayerClass(name);
 }
+
+void LayerExtWrapper::updateLayerState(const std::vector<std::string>&layers, int numLayers) {
+    mInst->UpdateLayerState(layers, numLayers);
+}
+
 #endif
 
 LayerExtWrapper::~LayerExtWrapper() {
@@ -512,7 +517,13 @@ SurfaceFlinger::SurfaceFlinger(Factory& factory) : SurfaceFlinger(factory, SkipI
     if (int_value) {
         mUseSmoMo = true;
     }
+    property_get("vendor.display.split_layer_ext", value, "0");
+    int_value = atoi(value);
+    if (int_value) {
+        mSplitLayerExt = true;
+    }
 #else
+    mSplitLayerExt = false;
     mUseSmoMo = false;
     mUseLayerExt = false;
 #endif
@@ -940,7 +951,7 @@ void SurfaceFlinger::init() {
 
 #ifdef QCOM_UM_FAMILY
 
-    if (mUseLayerExt) {
+    if (mUseLayerExt || mSplitLayerExt) {
         mLayerExt = LayerExtWrapper::Create();
         if (!mLayerExt) {
             ALOGE("Failed to create layer extension");
@@ -4209,11 +4220,17 @@ bool SurfaceFlinger::doComposeSurfaces(const sp<DisplayDevice>& displayDevice,
     ALOGV("Rendering client layers");
     bool firstLayer = true;
     Region clearRegion = Region::INVALID_REGION;
+#ifdef QCOM_UM_FAMILY
+    std::vector<std::string> layers;
+#endif
     for (auto& layer : displayDevice->getVisibleLayersSortedByZ()) {
         const Region viewportRegion(displayState.viewport);
         const Region clip(viewportRegion.intersect(layer->visibleRegion));
         ALOGV("Layer: %s", layer->getName().string());
         ALOGV("  Composition type: %s", toString(layer->getCompositionType(displayDevice)).c_str());
+#ifdef QCOM_UM_FAMILY
+        layers.push_back(layer->getName().string());
+#endif
         if (!clip.isEmpty()) {
             switch (layer->getCompositionType(displayDevice)) {
                 case Hwc2::IComposerClient::Composition::CURSOR:
@@ -4267,6 +4284,12 @@ bool SurfaceFlinger::doComposeSurfaces(const sp<DisplayDevice>& displayDevice,
         }
         firstLayer = false;
     }
+
+#ifdef QCOM_UM_FAMILY
+    if (mSplitLayerExt && mLayerExt) {
+        mLayerExt->updateLayerState(layers, mNumLayers);
+    }
+#endif
 
     // Perform some cleanup steps if we used client composition.
     if (hasClientComposition) {
